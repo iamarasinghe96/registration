@@ -2,34 +2,112 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR → Excel Row Generator</title>
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<title>QR Registration</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
-* { box-sizing: border-box; }
+:root {
+    --primary: #1f2937;
+    --secondary: #374151;
+    --border: #e5e7eb;
+    --accent: #b91c1c;
+    --bg: #f9fafb;
+}
 
-body {
+* {
+    box-sizing: border-box;
+}
+
+html, body {
     margin: 0;
-    font-family: Arial, sans-serif;
-    background: #fff;
+    padding: 0;
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--primary);
+    touch-action: manipulation;
 }
 
+/* Prevent mobile zoom */
+input, select, button {
+    font-size: 16px;
+}
+
+/* Layout */
 .container {
-    display: flex;
+    max-width: 1100px;
+    margin: 0 auto;
     min-height: 100vh;
+    display: flex;
+    gap: 24px;
+    padding: 24px;
 }
 
-.left, .right {
-    padding: 16px;
+.card {
+    background: #ffffff;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+    padding: 24px;
 }
 
-.left { width: 50%; }
+/* Left form */
+.form-card {
+    flex: 1;
+}
 
-.right {
-    width: 50%;
-    border-left: 1px solid #ccc;
+.form-card h2 {
+    margin: 0 0 16px 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.field {
+    margin-bottom: 14px;
+}
+
+label {
+    display: block;
+    font-size: 13px;
+    color: var(--secondary);
+    margin-bottom: 4px;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    outline: none;
+}
+
+input:focus, select:focus {
+    border-color: var(--primary);
+}
+
+button {
+    width: 100%;
+    padding: 14px;
+    margin-top: 16px;
+    border-radius: 8px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #111827;
+}
+
+/* Right QR */
+.qr-card {
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -37,64 +115,49 @@ body {
     gap: 14px;
 }
 
-label {
-    display: block;
-    margin-top: 10px;
-    font-size: 13px;
+#blinkNote {
+    display: none;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    animation: blink 1s infinite;
+    text-align: center;
 }
 
-input, select {
-    width: 100%;
-    padding: 8px;
-    margin-top: 4px;
-    font-size: 14px;
-}
-
-button {
-    margin-top: 14px;
-    padding: 12px;
-    width: 100%;
-    font-size: 15px;
-}
-
-button:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-}
-
-#qrcode canvas {
-    width: 256px;
-    height: 256px;
+@keyframes blink {
+    50% { opacity: 0; }
 }
 
 #slotDisplay {
     display: none;
-    font-size: 20px;
-    font-weight: bold;
+    font-size: 22px;
+    font-weight: 700;
 }
 
-#instruction {
+#qrcode canvas {
+    width: 260px;
+    height: 260px;
+}
+
+.info-text {
     display: none;
-    text-align: center;
     font-size: 14px;
+    text-align: center;
     max-width: 320px;
 }
 
-#warning {
+.warning {
     display: none;
-    color: #b00000;
     font-size: 13px;
+    color: var(--accent);
     text-align: center;
     max-width: 320px;
 }
 
 /* Mobile */
-@media (max-width: 768px) {
-    .container { flex-direction: column; }
-    .left, .right { width: 100%; }
-    .right {
-        border-left: none;
-        border-top: 1px solid #ccc;
+@media (max-width: 900px) {
+    .container {
+        flex-direction: column;
     }
 }
 </style>
@@ -104,73 +167,70 @@ button:disabled {
 
 <div class="container">
 
-    <div class="left">
+    <!-- FORM -->
+    <div class="card form-card">
+        <h2>Registration Details</h2>
 
-        <label>Application Type</label>
-        <select id="applicationType" onchange="toggleOther(this,'applicationTypeOther')">
-            <option value="">Select</option>
-            <option>Permanent</option>
-            <option>Temporary</option>
-            <option>Other</option>
-        </select>
-        <input id="applicationTypeOther" placeholder="Other Application Type" style="display:none;">
+        <div class="field">
+            <label>Application Type</label>
+            <select id="applicationType" onchange="toggleOther(this,'applicationTypeOther')">
+                <option value="">Select</option>
+                <option>Permanent</option>
+                <option>Temporary</option>
+                <option>Other</option>
+            </select>
+            <input id="applicationTypeOther" placeholder="Other Application Type" style="display:none;margin-top:6px;">
+        </div>
 
-        <label>First Name</label>
-        <input id="firstName">
+        <div class="field"><label>First Name</label><input id="firstName"></div>
+        <div class="field"><label>Preferred First Name</label><input id="preferredFirstName"></div>
+        <div class="field"><label>Middle Name</label><input id="middleName"></div>
+        <div class="field"><label>Last Name</label><input id="lastName"></div>
 
-        <label>Preferred First Name</label>
-        <input id="preferredFirstName">
+        <div class="field">
+            <label>Date of Birth (DD/MM/YYYY)</label>
+            <input id="birthDate" inputmode="numeric" pattern="[0-9/]*" maxlength="10" oninput="formatDate(this)">
+        </div>
 
-        <label>Middle Name</label>
-        <input id="middleName">
+        <div class="field">
+            <label>Reason of Admission</label>
+            <select id="reason" onchange="toggleOther(this,'reasonOther')">
+                <option value="">Select</option>
+                <option>Employment</option>
+                <option>Study</option>
+                <option>Medical</option>
+                <option>Other</option>
+            </select>
+            <input id="reasonOther" placeholder="Other Reason" style="display:none;margin-top:6px;">
+        </div>
 
-        <label>Last Name</label>
-        <input id="lastName">
+        <div class="field"><label>Email</label><input id="email" inputmode="email"></div>
+        <div class="field"><label>Phone Number</label><input id="phone" inputmode="numeric" pattern="[0-9]*"></div>
+        <div class="field"><label>Position</label><input id="position"></div>
 
-        <label>Birth Date (DD/MM/YYYY)</label>
-        <input id="birthDate" maxlength="10" oninput="formatDate(this)">
-
-        <label>Reason of Admission</label>
-        <select id="reason" onchange="toggleOther(this,'reasonOther')">
-            <option value="">Select</option>
-            <option>Employment</option>
-            <option>Study</option>
-            <option>Medical</option>
-            <option>Other</option>
-        </select>
-        <input id="reasonOther" placeholder="Other Reason" style="display:none;">
-
-        <label>Email</label>
-        <input id="email">
-
-        <label>Phone Number</label>
-        <input id="phone">
-
-        <label>Position</label>
-        <input id="position">
-
-        <button onclick="generateQR()" id="generateBtn">Generate QR Code</button>
-        <button id="saveBtn" onclick="saveQR()" disabled>Save QR Code</button>
+        <button onclick="generateQR()">Generate QR Code</button>
     </div>
 
-    <div class="right">
+    <!-- QR -->
+    <div class="card qr-card" id="qrSection">
+        <div id="blinkNote">Please take a screenshot</div>
         <div id="slotDisplay"></div>
         <div id="qrcode"></div>
-        <div id="instruction">
+        <div class="info-text" id="instruction">
             Please wait until your number arrives and show the QR code to the staff member to continue
         </div>
-        <div id="warning">
-            Warning: Closing or refreshing this page before saving will cancel your slot.
+        <div class="warning" id="warning">
+            Warning: Closing or refreshing this page will cancel your slot.
         </div>
     </div>
 
 </div>
 
 <script>
-let qrSaved = false;
+let qrGenerated = false;
 
-window.addEventListener("beforeunload", function (e) {
-    if (!qrSaved) {
+window.addEventListener("beforeunload", e => {
+    if (qrGenerated) {
         e.preventDefault();
         e.returnValue = "Closing this window will cancel your slot.";
     }
@@ -194,7 +254,6 @@ function val(id) {
 
 function generateSlotNumbers() {
     const d = new Date();
-
     const longSlot =
         d.getFullYear() +
         String(d.getMonth()+1).padStart(2,'0') +
@@ -219,7 +278,7 @@ function generateQR() {
 
     const reason = val("reason") === "Other"
         ? val("reasonOther")
-        : val("reason");
+        : val("reasonOther") || val("reason");
 
     const data = [
         slots.longSlot,
@@ -240,37 +299,25 @@ function generateQR() {
 
     new QRCode(qrDiv, {
         text: data,
-        width: 256,
-        height: 256,
+        width: 260,
+        height: 260,
         correctLevel: QRCode.CorrectLevel.L
     });
 
     document.getElementById("slotDisplay").innerText =
         "Slot Number: " + slots.shortSlot;
+
     document.getElementById("slotDisplay").style.display = "block";
     document.getElementById("instruction").style.display = "block";
     document.getElementById("warning").style.display = "block";
+    document.getElementById("blinkNote").style.display = "block";
 
-    document.getElementById("saveBtn").disabled = false;
-    document.getElementById("generateBtn").disabled = true;
+    qrGenerated = true;
 
-    qrDiv.dataset.slot = slots.longSlot;
-    qrSaved = false;
-}
-
-function saveQR() {
-    const canvas = document.querySelector("#qrcode canvas");
-    if (!canvas) return;
-
-    const slot = document.getElementById("qrcode").dataset.slot;
-    const link = document.createElement("a");
-    link.download = "QR_Slot_" + slot + ".png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-
-    qrSaved = true;
-    document.getElementById("warning").innerText =
-        "QR code saved. You may now close this window safely.";
+    document.getElementById("qrSection").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+    });
 }
 </script>
 
