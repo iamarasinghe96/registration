@@ -2,11 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-
-<title>QR Registration</title>
+<title>QR Registration with Review</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
@@ -19,9 +17,7 @@
     --bg: #f9fafb;
 }
 
-* {
-    box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html, body {
     margin: 0;
@@ -32,12 +28,10 @@ html, body {
     touch-action: manipulation;
 }
 
-/* Prevent mobile zoom */
 input, select, button {
     font-size: 16px;
 }
 
-/* Layout */
 .container {
     max-width: 1100px;
     margin: 0 auto;
@@ -48,27 +42,25 @@ input, select, button {
 }
 
 .card {
-    background: #ffffff;
+    background: #fff;
     border-radius: 10px;
     border: 1px solid var(--border);
     box-shadow: 0 6px 18px rgba(0,0,0,0.04);
     padding: 24px;
 }
 
-/* Left form */
-.form-card {
+/* Left form / review */
+.form-card, .review-card {
     flex: 1;
 }
 
-.form-card h2 {
-    margin: 0 0 16px 0;
+.form-card h2, .review-card h2 {
+    margin-bottom: 16px;
     font-size: 20px;
     font-weight: 600;
 }
 
-.field {
-    margin-bottom: 14px;
-}
+.field { margin-bottom: 14px; }
 
 label {
     display: block;
@@ -101,18 +93,14 @@ button {
     cursor: pointer;
 }
 
-button:hover {
-    background: #111827;
-}
+button:hover { background: #111827; }
 
-/* Right QR */
-.qr-card {
+#qrSection {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: 14px;
+    gap: 12px;
 }
 
 #blinkNote {
@@ -124,51 +112,34 @@ button:hover {
     text-align: center;
 }
 
-@keyframes blink {
-    50% { opacity: 0; }
-}
+@keyframes blink { 50% { opacity: 0; } }
 
-#slotDisplay {
-    display: none;
-    font-size: 22px;
-    font-weight: 700;
-}
+#slotDisplay { display: none; font-size: 22px; font-weight: 700; }
 
-#qrcode canvas {
-    width: 260px;
-    height: 260px;
-}
+#qrcode canvas { width: 260px; height: 260px; }
 
-.info-text {
-    display: none;
-    font-size: 14px;
+.info-text, .warning {
     text-align: center;
     max-width: 320px;
 }
 
-.warning {
-    display: none;
-    font-size: 13px;
-    color: var(--accent);
-    text-align: center;
-    max-width: 320px;
-}
+.info-text { display: none; font-size: 14px; }
+.warning { display: none; font-size: 13px; color: var(--accent); }
 
-/* Mobile */
-@media (max-width: 900px) {
-    .container {
-        flex-direction: column;
-    }
-}
+.review-card { display: none; }
+.review-row { margin-bottom: 10px; font-size: 14px; }
+.review-row span { font-weight: 600; }
+.action-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
+
+@media (max-width: 900px) { .container { flex-direction: column; } }
 </style>
 </head>
-
 <body>
 
 <div class="container">
 
-    <!-- FORM -->
-    <div class="card form-card">
+    <!-- Form Card -->
+    <div class="card form-card" id="formCard">
         <h2>Registration Details</h2>
 
         <div class="field">
@@ -205,14 +176,24 @@ button:hover {
         </div>
 
         <div class="field"><label>Email</label><input id="email" inputmode="email"></div>
-        <div class="field"><label>Phone Number</label><input id="phone" inputmode="numeric" pattern="[0-9]*"></div>
+        <div class="field"><label>Phone Number</label><input id="phone" inputmode="tel" pattern="[0-9+]*"></div>
         <div class="field"><label>Position</label><input id="position"></div>
 
-        <button onclick="generateQR()">Generate QR Code</button>
+        <button onclick="showReview()">Review Information</button>
     </div>
 
-    <!-- QR -->
-    <div class="card qr-card" id="qrSection">
+    <!-- Review Card -->
+    <div class="card review-card" id="reviewCard">
+        <h2>Review Your Information</h2>
+        <div id="reviewContent"></div>
+        <div class="action-buttons">
+            <button onclick="editInfo()">Edit</button>
+            <button onclick="generateQR()">Generate QR Code</button>
+        </div>
+    </div>
+
+    <!-- QR Section -->
+    <div class="card" id="qrSection">
         <div id="blinkNote">Please take a screenshot</div>
         <div id="slotDisplay"></div>
         <div id="qrcode"></div>
@@ -237,50 +218,66 @@ window.addEventListener("beforeunload", e => {
 });
 
 function toggleOther(select, otherId) {
-    document.getElementById(otherId).style.display =
-        select.value === "Other" ? "block" : "none";
+    document.getElementById(otherId).style.display = select.value === "Other" ? "block" : "none";
 }
 
 function formatDate(input) {
     let v = input.value.replace(/\D/g,'');
-    if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
-    if (v.length > 5) v = v.slice(0,5) + '/' + v.slice(5,9);
-    input.value = v;
+    if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);
+    if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5,9);
+    input.value=v;
 }
 
-function val(id) {
-    return document.getElementById(id).value.trim();
+function val(id){return document.getElementById(id).value.trim();}
+
+function showReview(){
+    const reviewCard = document.getElementById("reviewCard");
+    const formCard = document.getElementById("formCard");
+    const contentDiv = document.getElementById("reviewContent");
+    contentDiv.innerHTML = "";
+
+    const fields = [
+        {label:"Application Type", value: val("applicationType")==="Other"?val("applicationTypeOther"):val("applicationType")},
+        {label:"First Name", value: val("firstName")},
+        {label:"Preferred First Name", value: val("preferredFirstName")},
+        {label:"Middle Name", value: val("middleName")},
+        {label:"Last Name", value: val("lastName")},
+        {label:"DOB", value: val("birthDate")},
+        {label:"Reason", value: val("reason")==="Other"?val("reasonOther"):val("reason")},
+        {label:"Email", value: val("email")},
+        {label:"Phone", value: val("phone")},
+        {label:"Position", value: val("position")}
+    ];
+
+    fields.forEach(f=>{
+        const div = document.createElement("div");
+        div.className = "review-row";
+        div.innerHTML=`<span>${f.label}:</span> ${f.value}`;
+        contentDiv.appendChild(div);
+    });
+
+    formCard.style.display="none";
+    reviewCard.style.display="block";
+    document.getElementById("qrSection").style.display="none";
 }
 
-function generateSlotNumbers() {
-    const d = new Date();
-    const longSlot =
-        d.getFullYear() +
-        String(d.getMonth()+1).padStart(2,'0') +
-        String(d.getDate()).padStart(2,'0') +
-        String(d.getHours()).padStart(2,'0') +
-        String(d.getMinutes()).padStart(2,'0') +
-        String(d.getSeconds()).padStart(2,'0');
-
-    const shortSlot =
-        String(d.getHours()).padStart(2,'0') +
-        String(d.getMinutes()).padStart(2,'0');
-
-    return { longSlot, shortSlot };
+function editInfo(){
+    document.getElementById("reviewCard").style.display="none";
+    document.getElementById("formCard").style.display="block";
 }
 
-function generateQR() {
+function generateSlotNumbers(){
+    const d=new Date();
+    const longSlot=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+String(d.getSeconds()).padStart(2,'0');
+    const shortSlot=String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');
+    return {longSlot, shortSlot};
+}
+
+function generateQR(){
     const slots = generateSlotNumbers();
-
-    const appType = val("applicationType") === "Other"
-        ? val("applicationTypeOther")
-        : val("applicationType");
-
-    const reason = val("reason") === "Other"
-        ? val("reasonOther")
-        : val("reasonOther") || val("reason");
-
-    const data = [
+    const appType = val("applicationType")==="Other"?val("applicationTypeOther"):val("applicationType");
+    const reason = val("reason")==="Other"?val("reasonOther"):val("reason");
+    const data=[
         slots.longSlot,
         appType,
         val("firstName"),
@@ -294,32 +291,30 @@ function generateQR() {
         val("position")
     ].join("\t");
 
-    const qrDiv = document.getElementById("qrcode");
-    qrDiv.innerHTML = "";
+    const qrDiv=document.getElementById("qrcode");
+    qrDiv.innerHTML="";
 
-    new QRCode(qrDiv, {
-        text: data,
-        width: 260,
-        height: 260,
-        correctLevel: QRCode.CorrectLevel.L
+    new QRCode(qrDiv,{
+        text:data,
+        width:260,
+        height:260,
+        correctLevel:QRCode.CorrectLevel.L
     });
 
-    document.getElementById("slotDisplay").innerText =
-        "Slot Number: " + slots.shortSlot;
+    document.getElementById("slotDisplay").innerText="Slot Number: "+slots.shortSlot;
+    document.getElementById("slotDisplay").style.display="block";
+    document.getElementById("instruction").style.display="block";
+    document.getElementById("warning").style.display="block";
+    document.getElementById("blinkNote").style.display="block";
 
-    document.getElementById("slotDisplay").style.display = "block";
-    document.getElementById("instruction").style.display = "block";
-    document.getElementById("warning").style.display = "block";
-    document.getElementById("blinkNote").style.display = "block";
+    qrGenerated=true;
 
-    qrGenerated = true;
+    document.getElementById("reviewCard").style.display="none";
+    document.getElementById("formCard").style.display="none";
+    document.getElementById("qrSection").style.display="flex";
 
-    document.getElementById("qrSection").scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-    });
+    document.getElementById("qrSection").scrollIntoView({behavior:"smooth",block:"start"});
 }
 </script>
-
 </body>
 </html>
