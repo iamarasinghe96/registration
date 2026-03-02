@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR → Excel Row Generator</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #fff;
+}
+
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+
+.left, .right {
+    padding: 16px;
+}
+
+.left { width: 50%; }
+
+.right {
+    width: 50%;
+    border-left: 1px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+input, select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    font-size: 14px;
+}
+
+button {
+    margin-top: 14px;
+    padding: 12px;
+    width: 100%;
+    font-size: 15px;
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+#qrcode canvas {
+    width: 256px;
+    height: 256px;
+}
+
+#slotDisplay {
+    display: none;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+#instruction {
+    display: none;
+    text-align: center;
+    font-size: 14px;
+    max-width: 320px;
+}
+
+#warning {
+    display: none;
+    color: #b00000;
+    font-size: 13px;
+    text-align: center;
+    max-width: 320px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .container { flex-direction: column; }
+    .left, .right { width: 100%; }
+    .right {
+        border-left: none;
+        border-top: 1px solid #ccc;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="left">
+
+        <label>Application Type</label>
+        <select id="applicationType" onchange="toggleOther(this,'applicationTypeOther')">
+            <option value="">Select</option>
+            <option>Permanent</option>
+            <option>Temporary</option>
+            <option>Other</option>
+        </select>
+        <input id="applicationTypeOther" placeholder="Other Application Type" style="display:none;">
+
+        <label>First Name</label>
+        <input id="firstName">
+
+        <label>Preferred First Name</label>
+        <input id="preferredFirstName">
+
+        <label>Middle Name</label>
+        <input id="middleName">
+
+        <label>Last Name</label>
+        <input id="lastName">
+
+        <label>Birth Date (DD/MM/YYYY)</label>
+        <input id="birthDate" maxlength="10" oninput="formatDate(this)">
+
+        <label>Reason of Admission</label>
+        <select id="reason" onchange="toggleOther(this,'reasonOther')">
+            <option value="">Select</option>
+            <option>Employment</option>
+            <option>Study</option>
+            <option>Medical</option>
+            <option>Other</option>
+        </select>
+        <input id="reasonOther" placeholder="Other Reason" style="display:none;">
+
+        <label>Email</label>
+        <input id="email">
+
+        <label>Phone Number</label>
+        <input id="phone">
+
+        <label>Position</label>
+        <input id="position">
+
+        <button onclick="generateQR()" id="generateBtn">Generate QR Code</button>
+        <button id="saveBtn" onclick="saveQR()" disabled>Save QR Code</button>
+    </div>
+
+    <div class="right">
+        <div id="slotDisplay"></div>
+        <div id="qrcode"></div>
+        <div id="instruction">
+            Please wait until your number arrives and show the QR code to the staff member to continue
+        </div>
+        <div id="warning">
+            Warning: Closing or refreshing this page before saving will cancel your slot.
+        </div>
+    </div>
+
+</div>
+
+<script>
+let qrSaved = false;
+
+window.addEventListener("beforeunload", function (e) {
+    if (!qrSaved) {
+        e.preventDefault();
+        e.returnValue = "Closing this window will cancel your slot.";
+    }
+});
+
+function toggleOther(select, otherId) {
+    document.getElementById(otherId).style.display =
+        select.value === "Other" ? "block" : "none";
+}
+
+function formatDate(input) {
+    let v = input.value.replace(/\D/g,'');
+    if (v.length > 2) v = v.slice(0,2) + '/' + v.slice(2);
+    if (v.length > 5) v = v.slice(0,5) + '/' + v.slice(5,9);
+    input.value = v;
+}
+
+function val(id) {
+    return document.getElementById(id).value.trim();
+}
+
+function generateSlotNumbers() {
+    const d = new Date();
+
+    const longSlot =
+        d.getFullYear() +
+        String(d.getMonth()+1).padStart(2,'0') +
+        String(d.getDate()).padStart(2,'0') +
+        String(d.getHours()).padStart(2,'0') +
+        String(d.getMinutes()).padStart(2,'0') +
+        String(d.getSeconds()).padStart(2,'0');
+
+    const shortSlot =
+        String(d.getHours()).padStart(2,'0') +
+        String(d.getMinutes()).padStart(2,'0');
+
+    return { longSlot, shortSlot };
+}
+
+function generateQR() {
+    const slots = generateSlotNumbers();
+
+    const appType = val("applicationType") === "Other"
+        ? val("applicationTypeOther")
+        : val("applicationType");
+
+    const reason = val("reason") === "Other"
+        ? val("reasonOther")
+        : val("reason");
+
+    const data = [
+        slots.longSlot,
+        appType,
+        val("firstName"),
+        val("preferredFirstName"),
+        val("middleName"),
+        val("lastName"),
+        val("birthDate"),
+        reason,
+        val("email"),
+        val("phone"),
+        val("position")
+    ].join("\t");
+
+    const qrDiv = document.getElementById("qrcode");
+    qrDiv.innerHTML = "";
+
+    new QRCode(qrDiv, {
+        text: data,
+        width: 256,
+        height: 256,
+        correctLevel: QRCode.CorrectLevel.L
+    });
+
+    document.getElementById("slotDisplay").innerText =
+        "Slot Number: " + slots.shortSlot;
+    document.getElementById("slotDisplay").style.display = "block";
+    document.getElementById("instruction").style.display = "block";
+    document.getElementById("warning").style.display = "block";
+
+    document.getElementById("saveBtn").disabled = false;
+    document.getElementById("generateBtn").disabled = true;
+
+    qrDiv.dataset.slot = slots.longSlot;
+    qrSaved = false;
+}
+
+function saveQR() {
+    const canvas = document.querySelector("#qrcode canvas");
+    if (!canvas) return;
+
+    const slot = document.getElementById("qrcode").dataset.slot;
+    const link = document.createElement("a");
+    link.download = "QR_Slot_" + slot + ".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+
+    qrSaved = true;
+    document.getElementById("warning").innerText =
+        "QR code saved. You may now close this window safely.";
+}
+</script>
+
+</body>
+</html>
