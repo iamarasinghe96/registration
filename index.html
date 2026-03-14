@@ -1,320 +1,286 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>QR Registration with Review</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-
-<style>
-:root {
-    --primary: #1f2937;
-    --secondary: #374151;
-    --border: #e5e7eb;
-    --accent: #b91c1c;
-    --bg: #f9fafb;
-}
-
-* { box-sizing: border-box; }
-
-html, body {
-    margin: 0;
-    padding: 0;
-    font-family: "Segoe UI", Roboto, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--primary);
-    touch-action: manipulation;
-}
-
-input, select, button {
-    font-size: 16px;
-}
-
-.container {
-    max-width: 1100px;
-    margin: 0 auto;
-    min-height: 100vh;
-    display: flex;
-    gap: 24px;
-    padding: 24px;
-}
-
-.card {
-    background: #fff;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.04);
-    padding: 24px;
-}
-
-/* Left form / review */
-.form-card, .review-card {
-    flex: 1;
-}
-
-.form-card h2, .review-card h2 {
-    margin-bottom: 16px;
-    font-size: 20px;
-    font-weight: 600;
-}
-
-.field { margin-bottom: 14px; }
-
-label {
-    display: block;
-    font-size: 13px;
-    color: var(--secondary);
-    margin-bottom: 4px;
-}
-
-input, select {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    outline: none;
-}
-
-input:focus, select:focus {
-    border-color: var(--primary);
-}
-
-button {
-    width: 100%;
-    padding: 14px;
-    margin-top: 16px;
-    border-radius: 8px;
-    border: none;
-    background: var(--primary);
-    color: #fff;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-button:hover { background: #111827; }
-
-#qrSection {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
-#blinkNote {
-    display: none;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent);
-    animation: blink 1s infinite;
-    text-align: center;
-}
-
-@keyframes blink { 50% { opacity: 0; } }
-
-#slotDisplay { display: none; font-size: 22px; font-weight: 700; }
-
-#qrcode canvas { width: 260px; height: 260px; }
-
-.info-text, .warning {
-    text-align: center;
-    max-width: 320px;
-}
-
-.info-text { display: none; font-size: 14px; }
-.warning { display: none; font-size: 13px; color: var(--accent); }
-
-.review-card { display: none; }
-.review-row { margin-bottom: 10px; font-size: 14px; }
-.review-row span { font-weight: 600; }
-.action-buttons { display: flex; gap: 12px; flex-wrap: wrap; }
-
-@media (max-width: 900px) { .container { flex-direction: column; } }
-</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#2563eb"/>
+  <title>Registration — QR Queue System</title>
+  <link rel="stylesheet" href="css/style.css"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="js/validator.js"></script>
+  <script src="js/customer.js"></script>
 </head>
 <body>
 
-<div class="container">
+<div class="page">
 
-    <!-- Form Card -->
-    <div class="card form-card" id="formCard">
-        <h2>Registration Details</h2>
+  <!-- Header -->
+  <div class="page-header">
+    <h1>QR Queue Registration</h1>
+    <p>Fill in your details to receive a QR code for your appointment slot.</p>
+  </div>
 
-        <div class="field">
-            <label>Application Type</label>
-            <select id="applicationType" onchange="toggleOther(this,'applicationTypeOther')">
-                <option value="">Select</option>
-                <option>Permanent</option>
-                <option>Temporary</option>
-                <option>Other</option>
-            </select>
-            <input id="applicationTypeOther" placeholder="Other Application Type" style="display:none;margin-top:6px;">
-        </div>
+  <!-- Step indicator -->
+  <div class="steps">
+    <div class="step active">
+      <div class="step-dot">1</div>
+      <span class="step-label">Details</span>
+    </div>
+    <div class="step">
+      <div class="step-dot">2</div>
+      <span class="step-label">Review</span>
+    </div>
+    <div class="step">
+      <div class="step-dot">3</div>
+      <span class="step-label">QR Code</span>
+    </div>
+  </div>
 
-        <div class="field"><label>First Name</label><input id="firstName"></div>
-        <div class="field"><label>Preferred First Name</label><input id="preferredFirstName"></div>
-        <div class="field"><label>Middle Name</label><input id="middleName"></div>
-        <div class="field"><label>Last Name</label><input id="lastName"></div>
+  <!-- ══════════════════════════════════════
+       STEP 1 — Registration Form
+  ═══════════════════════════════════════ -->
+  <div class="step-section active" id="step-form">
 
-        <div class="field">
-            <label>Date of Birth (DD/MM/YYYY)</label>
-            <input id="birthDate" inputmode="numeric" pattern="[0-9/]*" maxlength="10" oninput="formatDate(this)">
-        </div>
-
-        <div class="field">
-            <label>Reason of Admission</label>
-            <select id="reason" onchange="toggleOther(this,'reasonOther')">
-                <option value="">Select</option>
-                <option>Employment</option>
-                <option>Study</option>
-                <option>Medical</option>
-                <option>Other</option>
-            </select>
-            <input id="reasonOther" placeholder="Other Reason" style="display:none;margin-top:6px;">
-        </div>
-
-        <div class="field"><label>Email</label><input id="email" inputmode="email"></div>
-        <div class="field"><label>Phone Number</label><input id="phone" inputmode="tel" pattern="[0-9+]*"></div>
-        <div class="field"><label>Position</label><input id="position"></div>
-
-        <button onclick="showReview()">Review Information</button>
+    <!-- Validation summary -->
+    <div class="error-summary" id="form-errors">
+      <p>Please fix the following before continuing:</p>
+      <ul id="form-errors-list"></ul>
     </div>
 
-    <!-- Review Card -->
-    <div class="card review-card" id="reviewCard">
-        <h2>Review Your Information</h2>
-        <div id="reviewContent"></div>
-        <div class="action-buttons">
-            <button onclick="editInfo()">Edit</button>
-            <button onclick="generateQR()">Generate QR Code</button>
+    <div class="card">
+      <h2>Application Type</h2>
+
+      <div class="field">
+        <label for="applicationType">Application Type <span class="req">*</span></label>
+        <div class="select-wrap">
+          <select id="applicationType" onchange="toggleOther(this,'applicationTypeOther')">
+            <option value="">— Select —</option>
+            <option value="Permanent">Permanent</option>
+            <option value="Temporary">Temporary</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
+        <span class="field-msg" id="applicationType-msg"></span>
+        <input
+          type="text"
+          id="applicationTypeOther"
+          class="other-input"
+          placeholder="Please specify…"
+          style="display:none"
+          aria-label="Other application type"
+        />
+        <span class="field-msg" id="applicationTypeOther-msg"></span>
+      </div>
     </div>
 
-    <!-- QR Section -->
-    <div class="card" id="qrSection">
-        <div id="blinkNote">Please take a screenshot</div>
-        <div id="slotDisplay"></div>
-        <div id="qrcode"></div>
-        <div class="info-text" id="instruction">
-            Please wait until your number arrives and show the QR code to the staff member to continue
-        </div>
-        <div class="warning" id="warning">
-            Warning: Closing or refreshing this page will cancel your slot.
-        </div>
+    <div class="card">
+      <h2>Name Details</h2>
+
+      <div class="field">
+        <label for="firstName">First Name <span class="req">*</span></label>
+        <input
+          type="text"
+          id="firstName"
+          autocomplete="given-name"
+          inputmode="text"
+          placeholder="e.g. David"
+        />
+        <span class="field-msg" id="firstName-msg"></span>
+      </div>
+
+      <div class="field">
+        <label for="preferredFirstName">Preferred First Name</label>
+        <input
+          type="text"
+          id="preferredFirstName"
+          autocomplete="nickname"
+          placeholder="e.g. Dave (optional)"
+        />
+        <span class="field-msg" id="preferredFirstName-msg"></span>
+      </div>
+
+      <div class="field">
+        <label for="middleName">Middle Name</label>
+        <input
+          type="text"
+          id="middleName"
+          autocomplete="additional-name"
+          placeholder="Optional"
+        />
+        <span class="field-msg" id="middleName-msg"></span>
+      </div>
+
+      <div class="field">
+        <label for="lastName">Last Name <span class="req">*</span></label>
+        <input
+          type="text"
+          id="lastName"
+          autocomplete="family-name"
+          placeholder="e.g. Smith"
+        />
+        <span class="field-msg" id="lastName-msg"></span>
+      </div>
     </div>
 
-</div>
+    <div class="card">
+      <h2>Personal Details</h2>
 
-<script>
-let qrGenerated = false;
+      <div class="field">
+        <label for="dob">Date of Birth <span class="req">*</span>
+          <span style="font-weight:400;color:var(--gray-400);font-size:.78rem;">&nbsp;DD/MM/YYYY</span>
+        </label>
+        <input
+          type="text"
+          id="dob"
+          inputmode="numeric"
+          pattern="[0-9/]*"
+          maxlength="10"
+          placeholder="15/03/1985"
+          autocomplete="bday"
+          oninput="formatDOB(this)"
+        />
+        <span class="field-msg" id="dob-msg"></span>
+      </div>
 
-window.addEventListener("beforeunload", e => {
-    if (qrGenerated) {
-        e.preventDefault();
-        e.returnValue = "Closing this window will cancel your slot.";
-    }
-});
+      <div class="field">
+        <label for="reason">Reason of Admission <span class="req">*</span></label>
+        <div class="select-wrap">
+          <select id="reason" onchange="toggleOther(this,'reasonOther')">
+            <option value="">— Select —</option>
+            <option value="Employment">Employment</option>
+            <option value="Study">Study</option>
+            <option value="Medical">Medical</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+        <span class="field-msg" id="reason-msg"></span>
+        <input
+          type="text"
+          id="reasonOther"
+          class="other-input"
+          placeholder="Please specify…"
+          style="display:none"
+          aria-label="Other reason"
+        />
+        <span class="field-msg" id="reasonOther-msg"></span>
+      </div>
+    </div>
 
-function toggleOther(select, otherId) {
-    document.getElementById(otherId).style.display = select.value === "Other" ? "block" : "none";
-}
+    <div class="card">
+      <h2>Contact Details</h2>
 
-function formatDate(input) {
-    let v = input.value.replace(/\D/g,'');
-    if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);
-    if(v.length>5)v=v.slice(0,5)+'/'+v.slice(5,9);
-    input.value=v;
-}
+      <div class="field">
+        <label for="email">Email Address <span class="req">*</span></label>
+        <input
+          type="email"
+          id="email"
+          inputmode="email"
+          autocomplete="email"
+          placeholder="name@example.com"
+        />
+        <span class="field-msg" id="email-msg"></span>
+      </div>
 
-function val(id){return document.getElementById(id).value.trim();}
+      <div class="field">
+        <label for="phone">Phone Number <span class="req">*</span></label>
+        <input
+          type="tel"
+          id="phone"
+          inputmode="tel"
+          autocomplete="tel"
+          placeholder="0412 345 678"
+        />
+        <span class="field-msg" id="phone-msg"></span>
+      </div>
 
-function showReview(){
-    const reviewCard = document.getElementById("reviewCard");
-    const formCard = document.getElementById("formCard");
-    const contentDiv = document.getElementById("reviewContent");
-    contentDiv.innerHTML = "";
+      <div class="field">
+        <label for="position">Position / Occupation</label>
+        <input
+          type="text"
+          id="position"
+          autocomplete="organization-title"
+          placeholder="e.g. Senior Manager (optional)"
+        />
+        <span class="field-msg" id="position-msg"></span>
+      </div>
+    </div>
 
-    const fields = [
-        {label:"Application Type", value: val("applicationType")==="Other"?val("applicationTypeOther"):val("applicationType")},
-        {label:"First Name", value: val("firstName")},
-        {label:"Preferred First Name", value: val("preferredFirstName")},
-        {label:"Middle Name", value: val("middleName")},
-        {label:"Last Name", value: val("lastName")},
-        {label:"DOB", value: val("birthDate")},
-        {label:"Reason", value: val("reason")==="Other"?val("reasonOther"):val("reason")},
-        {label:"Email", value: val("email")},
-        {label:"Phone", value: val("phone")},
-        {label:"Position", value: val("position")}
-    ];
+    <button class="btn btn-primary" onclick="goToReview()">
+      Review Information →
+    </button>
 
-    fields.forEach(f=>{
-        const div = document.createElement("div");
-        div.className = "review-row";
-        div.innerHTML=`<span>${f.label}:</span> ${f.value}`;
-        contentDiv.appendChild(div);
-    });
+  </div><!-- /step-form -->
 
-    formCard.style.display="none";
-    reviewCard.style.display="block";
-    document.getElementById("qrSection").style.display="none";
-}
 
-function editInfo(){
-    document.getElementById("reviewCard").style.display="none";
-    document.getElementById("formCard").style.display="block";
-}
+  <!-- ══════════════════════════════════════
+       STEP 2 — Review
+  ═══════════════════════════════════════ -->
+  <div class="step-section" id="step-review">
 
-function generateSlotNumbers(){
-    const d=new Date();
-    const longSlot=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+String(d.getSeconds()).padStart(2,'0');
-    const shortSlot=String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');
-    return {longSlot, shortSlot};
-}
+    <div class="card">
+      <h2>Review Your Information</h2>
+      <p style="font-size:.875rem;color:var(--gray-500);margin-bottom:14px;">
+        Please check everything carefully before generating your QR code.
+        Once generated, you cannot edit your details.
+      </p>
+      <div id="review-content"></div>
+    </div>
 
-function generateQR(){
-    const slots = generateSlotNumbers();
-    const appType = val("applicationType")==="Other"?val("applicationTypeOther"):val("applicationType");
-    const reason = val("reason")==="Other"?val("reasonOther"):val("reason");
-    const data=[
-        slots.longSlot,
-        appType,
-        val("firstName"),
-        val("preferredFirstName"),
-        val("middleName"),
-        val("lastName"),
-        val("birthDate"),
-        reason,
-        val("email"),
-        val("phone"),
-        val("position")
-    ].join("\t");
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="goBackToForm()">
+        ← Edit
+      </button>
+      <button class="btn btn-success" onclick="generateQR()">
+        Generate QR →
+      </button>
+    </div>
 
-    const qrDiv=document.getElementById("qrcode");
-    qrDiv.innerHTML="";
+  </div><!-- /step-review -->
 
-    new QRCode(qrDiv,{
-        text:data,
-        width:260,
-        height:260,
-        correctLevel:QRCode.CorrectLevel.L
-    });
 
-    document.getElementById("slotDisplay").innerText="Slot Number: "+slots.shortSlot;
-    document.getElementById("slotDisplay").style.display="block";
-    document.getElementById("instruction").style.display="block";
-    document.getElementById("warning").style.display="block";
-    document.getElementById("blinkNote").style.display="block";
+  <!-- ══════════════════════════════════════
+       STEP 3 — QR Code
+  ═══════════════════════════════════════ -->
+  <div class="step-section" id="step-qr">
 
-    qrGenerated=true;
+    <div class="card qr-card">
 
-    document.getElementById("reviewCard").style.display="none";
-    document.getElementById("formCard").style.display="none";
-    document.getElementById("qrSection").style.display="flex";
+      <!-- Blinking "Take a screenshot" notice -->
+      <div class="blink-notice">
+        📸 Please take a screenshot now
+      </div>
 
-    document.getElementById("qrSection").scrollIntoView({behavior:"smooth",block:"start"});
-}
-</script>
+      <!-- Slot badge -->
+      <div class="slot-badge">
+        <span class="slot-prefix">Your Slot</span>
+        <span id="slot-time">--:--</span>
+      </div>
+
+      <!-- QR Code -->
+      <div id="qrcode-wrap"></div>
+
+      <!-- Instruction -->
+      <p class="qr-instruction">
+        Please wait until your slot number is called and then
+        show this QR code to the staff member at the counter.
+      </p>
+
+      <!-- Close warning -->
+      <div class="close-warning">
+        <span class="warn-icon">⚠️</span>
+        <span>
+          <strong>Do not close or refresh this page.</strong><br/>
+          Doing so will cancel your slot and you will need to re-register.
+        </span>
+      </div>
+
+    </div><!-- /card -->
+
+  </div><!-- /step-qr -->
+
+</div><!-- /page -->
+
+<div id="toast"></div>
+
 </body>
 </html>
